@@ -1,7 +1,7 @@
 const int ledPin = 7;
 const int buttonPin = 2;
 
-int brightnessLevels[] = {0, 85, 170, 255};  // PWM values for Off, Low, Med, High
+int brightnessLevels[] = {0, 90, 200, 300};  // PWM values for Off, Low, Med, High
 int currentLevel = 0;
 int lastButtonState = LOW;
 bool buttonPressed = false;
