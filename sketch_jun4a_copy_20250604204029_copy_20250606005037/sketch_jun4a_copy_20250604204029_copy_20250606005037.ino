@@ -1,7 +1,7 @@
 const int ledPin = 7;
 const int buttonPin = 2;
 
-int brightnessLevels[] = {0, 90, 200, 300};  // PWM values for Off, Low, Med, High
+int brightnessLevels[] = {0, 80, 230, 370};  // PWM values for Off, Low, Med, High
 int currentLevel = 0;
 int lastButtonState = LOW;
 bool buttonPressed = false;
@@ -21,7 +21,7 @@ void loop() {
     buttonPressed = true;
     currentLevel = (currentLevel + 1) % 4;  // Cycle through 0-1-2-3-0
     analogWrite(ledPin, brightnessLevels[currentLevel]);
-    delay(50);  // debounce delay
+    delay(100);  // debounce delay
   }
 
   // Wait until button is released to allow next press
