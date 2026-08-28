@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Math — Consulting Interview Trainer</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --panel:#ffffff;
+    --panel-border:#e2e4e9;
+    --text:#1c1f26;
+    --text-dim:#5b6270;
+    --accent:#0f6e5c;
+    --accent-dim:#0f6e5c22;
+    --accent2:#c9820a;
+    --good:#1a8f4c;
+    --good-bg:#e9f8ef;
+    --bad:#c93b3b;
+    --bad-bg:#fdeceb;
+    --input-bg:#fbfbfc;
+    --shadow: 0 1px 2px rgba(20,20,30,.04), 0 8px 24px rgba(20,20,30,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14161c;
+      --panel:#1c1f27;
+      --panel-border:#2c303b;
+      --text:#eef0f4;
+      --text-dim:#9aa0ad;
+      --accent:#3fd6ae;
+      --accent-dim:#3fd6ae22;
+      --accent2:#e6a13c;
+      --good:#3fd689;
+      --good-bg:#123425;
+      --bad:#ef6a63;
+      --bad-bg:#3a1a1a;
+      --input-bg:#12141a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:8px;}
+  header.top h1{font-size:22px;margin:0;letter-spacing:-0.01em;}
+  header.top h1 span{color:var(--accent);}
+  header.top .tagline{color:var(--text-dim);font-size:13px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:24px;
+  }
+
+  /* ---------- Mode select screen ---------- */
+  .diff-row{display:flex;gap:8px;margin-bottom:22px;}
+  .diff-btn{
+    flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--panel-border);
+    background:var(--panel);color:var(--text-dim);font-size:13px;font-weight:600;
+    cursor:pointer;transition:all .15s ease;text-align:center;
+  }
+  .diff-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim);}
+
+  .mode-grid{display:grid;grid-template-columns:1fr;gap:14px;}
+  .mode-card{
+    background:var(--panel);border:1px solid var(--panel-border);border-radius:14px;
+    padding:18px 20px;cursor:pointer;transition:transform .12s ease, border-color .12s ease;
+    box-shadow:var(--shadow);
+  }
+  .mode-card:hover{transform:translateY(-2px);border-color:var(--accent);}
+  .mode-card h3{margin:0 0 4px;font-size:16px;}
+  .mode-card p{margin:0 0 10px;color:var(--text-dim);font-size:13px;line-height:1.5;}
+  .mode-card .stats{font-size:12px;color:var(--accent2);font-weight:600;}
+
+  /* ---------- Game screen ---------- */
+  .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-size:13px;color:var(--text-dim);}
+  .hud .pill{
+    background:var(--input-bg);border:1px solid var(--panel-border);border-radius:999px;
+    padding:5px 12px;font-weight:600;color:var(--text);
+  }
+  .hud .pill.accent{color:var(--accent);border-color:var(--accent);}
+  .progress-bar{height:6px;border-radius:999px;background:var(--input-bg);overflow:hidden;margin-bottom:22px;border:1px solid var(--panel-border);}
+  .progress-fill{height:100%;background:var(--accent);width:0%;transition:width .2s ease;}
+
+  .q-label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);font-weight:700;margin-bottom:10px;}
+  .q-prompt{font-size:19px;line-height:1.5;margin-bottom:20px;font-weight:500;}
+  .q-prompt b{color:var(--accent);}
+
+  .answer-row{display:flex;gap:10px;}
+  input[type="text"], input[type="number"]{
+    flex:1;font-size:18px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--panel-border);
+    background:var(--input-bg);color:var(--text);outline:none;transition:border-color .15s;
+  }
+  input:focus{border-color:var(--accent);}
+  button{
+    font-family:inherit;font-size:15px;font-weight:600;border:none;border-radius:10px;
+    padding:12px 20px;cursor:pointer;transition:filter .15s ease, transform .1s ease;
+  }
+  button:active{transform:scale(0.97);}
+  .btn-primary{background:var(--accent);color:#04231c;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:transparent;border:1px solid var(--panel-border);color:var(--text);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .full{width:100%;}
+
+  .feedback{
+    margin-top:16px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.5;
+    display:none;
+  }
+  .feedback.show{display:block;}
+  .feedback.good{background:var(--good-bg);color:var(--good);}
+  .feedback.bad{background:var(--bad-bg);color:var(--bad);}
+  .feedback .explain{color:var(--text-dim);font-weight:400;display:block;margin-top:6px;}
+
+  .end-actions{display:flex;gap:10px;margin-top:16px;}
+
+  /* ---------- Results ---------- */
+  .score-hero{text-align:center;padding:12px 0 22px;}
+  .score-hero .big{font-size:44px;font-weight:800;color:var(--accent);}
+  .score-hero .sub{color:var(--text-dim);font-size:13px;margin-top:4px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0;}
+  .stat-box{background:var(--input-bg);border:1px solid var(--panel-border);border-radius:10px;padding:12px;text-align:center;}
+  .stat-box .n{font-size:20px;font-weight:700;}
+  .stat-box .l{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .missed{margin-top:18px;}
+  .missed h4{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;}
+  .missed-item{padding:10px 0;border-top:1px solid var(--panel-border);font-size:13px;}
+  .missed-item .p{color:var(--text);margin-bottom:3px;}
+  .missed-item .a{color:var(--text-dim);}
+  .missed-item .a b{color:var(--good);}
+
+  .hidden{display:none !important;}
+  footer.credit{text-align:center;color:var(--text-dim);font-size:11px;margin-top:28px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Case<span>Math</span></h1>
+    <div class="tagline">consulting &amp; strategy interview math trainer</div>
+  </header>
+
+  <!-- ===== HOME / MODE SELECT ===== -->
+  <div id="screen-home">
+    <div class="card" style="margin-bottom:18px;">
+      <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px;">difficulty</div>
+      <div class="diff-row" id="diffRow">
+        <div class="diff-btn" data-diff="easy">Easy</div>
+        <div class="diff-btn active" data-diff="medium">Medium</div>
+        <div class="diff-btn" data-diff="hard">Hard</div>
+      </div>
+    </div>
+
+    <div class="mode-grid">
+      <div class="mode-card" data-mode="sprint">
+        <h3>⚡ Mental Math Sprint</h3>
+        <p>60-second timed drill: percentages, quick multiplication/division, fractions to %, and rounded-number arithmetic — the reflexes every case interview demands.</p>
+        <div class="stats" id="stat-sprint">No runs yet</div>
+      </div>
+      <div class="mode-card" data-mode="guesstimate">
+        <h3>🌍 Market Sizing Guesstimates</h3>
+        <p>Classic estimation questions (piano tuners, market sizes, unit counts). Give an order-of-magnitude answer, then see a sample top-down breakdown.</p>
+        <div class="stats" id="stat-guesstimate">No runs yet</div>
+      </div>
+      <div class="mode-card" data-mode="casemath">
+        <h3>📊 Business Case Math</h3>
+        <p>Profit &amp; margin, breakeven volume, CAGR (rule of 72), weighted averages, market share, ROI — the calculations that show up inside real cases.</p>
+        <div class="stats" id="stat-casemath">No runs yet</div>
+      </div>
+    </div>
+    <footer class="credit">10 questions per round for Guesstimates &amp; Case Math · 60s clock for Sprint · scores saved on this device</footer>
+  </div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="screen-game" class="hidden">
+    <div class="hud">
+      <div class="pill" id="hudMode">Mode</div>
+      <div class="pill accent" id="hudTimer">--</div>
+      <div class="pill">Score <span id="hudScore">0</span></div>
+      <div class="pill">🔥 <span id="hudStreak">0</span></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="card">
+      <div class="q-label" id="qLabel">Question</div>
+      <div class="q-prompt" id="qPrompt">Loading…</div>
+
+      <div class="answer-row">
+        <input type="text" inputmode="decimal" id="answerInput" placeholder="Your answer" autocomplete="off">
+        <button class="btn-primary" id="submitBtn">Submit</button>
+      </div>
+
+      <div class="feedback" id="feedback">
+        <span id="feedbackMain"></span>
+        <span class="explain" id="feedbackExplain"></span>
+      </div>
+    </div>
+
+    <div class="end-actions">
+      <button class="btn-ghost full" id="quitBtn">End round</button>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS SCREEN ===== -->
+  <div id="screen-results" class="hidden">
+    <div class="card">
+      <div class="score-hero">
+        <div class="big" id="resScore">0</div>
+        <div class="sub" id="resSub">points</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="n" id="resCorrect">0</div><div class="l">Correct</div></div>
+        <div class="stat-box"><div class="n" id="resAccuracy">0%</div><div class="l">Accuracy</div></div>
+        <div class="stat-box"><div class="n" id="resStreak">0</div><div class="l">Best streak</div></div>
+      </div>
+      <div class="missed" id="missedWrap">
+        <h4>Review</h4>
+        <div id="missedList"></div>
+      </div>
+      <div class="end-actions">
+        <button class="btn-primary full" id="playAgainBtn">Play again</button>
+        <button class="btn-ghost full" id="homeBtn">Change mode</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- utilities ---------------- */
+  function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function round(n,d){ const f=Math.pow(10,d||0); return Math.round(n*f)/f; }
+  function fmt(n){
+    if (Math.abs(n - Math.round(n)) < 1e-9) return Math.round(n).toLocaleString();
+    return (Math.round(n*100)/100).toLocaleString();
+  }
+  function fmtMoney(n){
+    return "$" + fmt(n);
+  }
+
+  const state = {
+    difficulty: "medium",
+    mode: null,
+    questions: [],
+    index: 0,
+    score: 0,
+    correct: 0,
+    streak: 0,
+    bestStreak: 0,
+    missed: [],
+    timerId: null,
+    timeLeft: 60,
+    total: 10
+  };
+
+  /* ---------------- difficulty scaling ---------------- */
+  function diffScale(){
+    return state.difficulty === "easy" ? 0 : state.difficulty === "hard" ? 2 : 1;
+  }
+
+  /* ================= MENTAL MATH SPRINT ================= */
+  function genSprintQuestion(){
+    const d = diffScale();
+    const type = pick(["percentOf","percentChange","mult","div","fraction","addsub"]);
+
+    if (type === "percentOf"){
+      const pctsEasy=[10,20,25,50,5], pctsMed=[15,30,40,60,75,12], pctsHard=[8,18,35,45,17,22];
+      const pct = pick(d===0?pctsEasy:d===1?pctsMed:pctsHard);
+      const base = rand(1,d===0?40:d===1?90:200) * (d===0?10:5);
+      const ans = round(pct/100*base, 1);
+      return {
+        prompt: `What is <b>${pct}%</b> of <b>${fmt(base)}</b>?`,
+        answer: ans, tol: Math.max(0.6, ans*0.02), suffix: ""
+      };
+    }
+    if (type === "percentChange"){
+      const start = rand(d===0?10:d===1?20:30, d===0?60:d===1?120:250) * 10;
+      const dir = pick([1,-1]);
+      const pct = pick(d===0?[10,20,25,50]:d===1?[15,30,40,12]:[8,18,35,45]);
+      const end = Math.round(start*(1+dir*pct/100));
+      const ans = round((end-start)/start*100, 1);
+      return {
+        prompt: `A metric moves from <b>${fmt(start)}</b> to <b>${fmt(end)}</b>. What is the % change?`,
+        answer: ans, tol: 0.6, suffix: "%"
+      };
+    }
+    if (type === "mult"){
+      let a,b;
+      if (d===0){ a=rand(11,19); b=rand(2,9); }
+      else if (d===1){ a=rand(12,29); b=rand(11,19); }
+      else { a=rand(23,89); b=rand(11,29); }
+      return { prompt: `${a} × ${b} = ?`, answer: a*b, tol: 0, suffix: "" };
+    }
+    if (type === "div"){
+      let divisor, ans, dividend;
+      if (d===0){ divisor=rand(2,9); ans=rand(4,20); }
+      else if (d===1){ divisor=rand(4,12); ans=rand(8,40); }
+      else { divisor=rand(6,24); ans=rand(12,80); }
+      dividend = divisor*ans;
+      return { prompt: `${fmt(dividend)} ÷ ${divisor} = ?`, answer: ans, tol: 0, suffix: "" };
+    }
+    if (type === "fraction"){
+      const fracsEasy=[[1,2],[1,4],[3,4],[1,5],[1,10]];
+      const fracsMed=[[3,8],[5,6],[2,3],[7,10],[1,3]];
+      const fracsHard=[[7,12],[5,9],[11,20],[4,7],[9,16]];
+      const [n,dd] = pick(d===0?fracsEasy:d===1?fracsMed:fracsHard);
+      const ans = round(n/dd*100,1);
+      return { prompt: `Convert <b>${n}/${dd}</b> to a percentage.`, answer: ans, tol: 0.6, suffix: "%" };
+    }
+    // addsub — rounded "millions" style quick math
+    const scale = d===0? 1 : d===1? 10 : 100;
+    const a = round(rand(10,90)/10 * scale, 1);
+    const b = round(rand(10,90)/10 * scale, 1);
+    const c = round(rand(5,40)/10 * scale, 1);
+    const op2 = pick(["+","-"]);
+    const ans = op2==="+" ? round(a+b-c,1) : round(a-b+c,1);
+    const expr = op2==="+" ? `${fmt(a)} + ${fmt(b)} − ${fmt(c)}` : `${fmt(a)} − ${fmt(b)} + ${fmt(c)}`;
+    return { prompt: `${expr} = ? <span style="color:var(--text-dim);font-size:13px;">($M)</span>`, answer: ans, tol: Math.max(0.15, Math.abs(ans)*0.01), suffix: "" };
+  }
+
+  /* ================= GUESSTIMATES ================= */
+  const GUESSTIMATES = [
+    { q:"How many gas stations are there in the United States?", low:100000, high:170000, unit:"stations",
+      logic:"US population ≈ 330M. Roughly 1 gas station per ~2,000 people (accounting for cars per household and rural coverage) → 330M / 2,000 ≈ 165,000. Actual figure: ~145,000." },
+    { q:"How many piano tuners are there in Chicago?", low:20, high:150, unit:"tuners",
+      logic:"Chicago pop. ≈ 2.7M → ~900K households. Assume 1 in 20 households owns a piano tuned ~once/year → 45,000 tunings/year. A tuner does ~4/day × 250 days ≈ 1,000/year → 45,000/1,000 ≈ 45 tuners." },
+    { q:"What is the annual US market size for pizza delivery, in billions of dollars?", low:30, high:60, unit:"$B/year",
+      logic:"US households ≈ 130M. Assume ~40% order delivery pizza ~1x/month at ~$25/order → 52M orders/month × 12 × $25 ≈ $15.6B... scaling for take-out + chains pushes the full pizza market to ~$45B/year." },
+    { q:"How many golf balls fit inside a standard school bus?", low:400000, high:700000, unit:"balls",
+      logic:"Bus interior volume ≈ 30ft×8ft×6ft ≈ 1,440 ft³ ≈ 40 m³. A golf ball ≈ 40 cm³; packing efficiency ~65% → 40,000,000 cm³ × 0.65 / 40 cm³ ≈ 650,000 balls." },
+    { q:"How many smartphones are sold in India each year?", low:120000000, high:180000000, unit:"units/year",
+      logic:"India pop. ≈ 1.4B, smartphone penetration ≈ 55% and rising, replacement cycle ≈ 2.5 years → ~770M smartphones in use / 2.5 ≈ 150M new sales/year, plus first-time buyers." },
+    { q:"How many barbershops/hair salons are in New York City?", low:5000, high:12000, unit:"shops",
+      logic:"NYC pop. ≈ 8.5M, haircut roughly every 6 weeks → ~74M haircuts/year. A shop with 3 chairs does ~10 cuts/day × 300 days = 3,000/year × 3 chairs ≈ 9,000/shop-year → 74M/9,000 ≈ 8,200 shops." },
+    { q:"How many cups of coffee are sold in the US every day?", low:300000000, high:500000000, unit:"cups/day",
+      logic:"US adult pop. ≈ 260M, ~60% drink coffee daily, ~2 cups/day average among drinkers, plus ~1/3 bought outside the home → roughly 400M cups/day are purchased or made." },
+    { q:"What is the total number of Uber/Lyft rides given per day in the US?", low:5000000, high:10000000, unit:"rides/day",
+      logic:"Rideshare users ≈ 40M active US riders, taking ~2 rides/week on average → 80M rides/week / 7 ≈ 11M/day; trim for overlap/inactive users → ~7M/day." },
+    { q:"How many tennis balls would fit inside a Boeing 747?", low:20000000, high:60000000, unit:"balls",
+      logic:"747 cabin+cargo volume ≈ 850,000 ft³ ≈ 24,000 m³. A tennis ball ≈ 140 cm³, packing efficiency ~60% → 24,000,000,000 cm³ × 0.6 / 140 ≈ 100M... adjusting for seats/structure taking real space, a workable estimate lands near 30-40M." },
+    { q:"How many weddings take place in the US each year?", low:1500000, high:2200000, unit:"weddings/year",
+      logic:"US pop. ≈ 330M, marriage rate ≈ 6 per 1,000 people/year → 330M × 6/1,000 ≈ 2,000,000 marriages, i.e., ~1,000,000-2,000,000 wedding events per year." },
+    { q:"What is the market size of the US pet food industry, in billions of dollars?", low:35, high:55, unit:"$B/year",
+      logic:"US households ≈ 130M, ~60% own a pet → 78M pet-owning households, spending ~$550/year on food on average → 78M × $550 ≈ $43B." },
+    { q:"How many elevators are there in New York City?", low:60000, high:90000, unit:"elevators",
+      logic:"NYC has ~1M buildings; assume ~7-8% are multi-story buildings with elevators (~75,000 buildings), averaging ~1 elevator each → roughly 70,000-75,000 elevators citywide." }
+  ];
+
+  /* ================= BUSINESS CASE MATH ================= */
+  function genCaseMathQuestion(){
+    const d = diffScale();
+    const type = pick(["profit","breakeven","cagr","weighted","share","roi","margin"]);
+    const scale = d===0?1:d===1?10:50;
+
+    if (type === "profit"){
+      const price = rand(20,80)+d*10;
+      const varCost = rand(5,Math.max(6,price-10));
+      const qty = rand(5,20)*1000*(d+1);
+      const fixed = rand(50,400)*1000*(d+1);
+      const revenue = price*qty;
+      const totalVarCost = varCost*qty;
+      const profit = revenue - totalVarCost - fixed;
+      return {
+        prompt:`A product sells for <b>$${price}</b>/unit with variable cost <b>$${varCost}</b>/unit. Fixed costs are <b>${fmtMoney(fixed)}</b>. At <b>${fmt(qty)}</b> units sold, what is total profit ($)?`,
+        answer: profit, tol: Math.max(50, Math.abs(profit)*0.02),
+        explain:`Revenue ${fmtMoney(revenue)} − Variable cost ${fmtMoney(totalVarCost)} − Fixed cost ${fmtMoney(fixed)} = ${fmtMoney(profit)}`
+      };
+    }
+    if (type === "breakeven"){
+      const price = rand(15,60)+d*8;
+      const varCost = rand(5,Math.max(6,price-8));
+      const contrib = price - varCost;
+      const units = rand(1,9)*1000*(d+1);
+      const fixed = contrib*units;
+      return {
+        prompt:`Price is <b>$${price}</b>/unit, variable cost is <b>$${varCost}</b>/unit, and fixed costs are <b>${fmtMoney(fixed)}</b>. How many units are needed to break even?`,
+        answer: units, tol: Math.max(2, units*0.02),
+        explain:`Breakeven units = Fixed cost ÷ (Price − Variable cost) = ${fmtMoney(fixed)} ÷ $${contrib} = ${fmt(units)} units`
+      };
+    }
+    if (type === "cagr"){
+      const years = pick([2,3,4,6,8,9,12]);
+      const cagr = round(72/years,1);
+      return {
+        prompt:`Using the <b>Rule of 72</b>: a metric doubles in <b>${years} years</b>. Approximately what is the annual growth rate (CAGR, %)?`,
+        answer: cagr, tol: Math.max(0.6, cagr*0.05),
+        explain:`Rule of 72: years ≈ 72 ÷ CAGR% → CAGR ≈ 72 ÷ ${years} = ${cagr}%`
+      };
+    }
+    if (type === "weighted"){
+      const p1=rand(10,40)+d*5, p2=rand(10,40)+d*5;
+      const w1=rand(2,8)*10, w2=100-w1;
+      const wavg = round((p1*w1+p2*w2)/100,2);
+      return {
+        prompt:`Segment A: <b>${w1}%</b> of volume at <b>$${p1}</b>. Segment B: <b>${w2}%</b> of volume at <b>$${p2}</b>. What is the weighted-average price ($)?`,
+        answer: wavg, tol: Math.max(0.3, wavg*0.02),
+        explain:`(${p1} × ${w1}% ) + (${p2} × ${w2}%) = $${wavg}`
+      };
+    }
+    if (type === "share"){
+      const total = rand(20,90)*10*(d+1);
+      const firm = rand(5,total-5);
+      const share = round(firm/total*100,1);
+      return {
+        prompt:`Total market revenue is <b>${fmtMoney(total)}M</b>. Our firm earns <b>${fmtMoney(firm)}M</b>. What is our market share (%)?`,
+        answer: share, tol: 0.6,
+        explain:`Market share = ${firm} ÷ ${total} × 100 = ${share}%`
+      };
+    }
+    if (type === "roi"){
+      const cost = rand(50,300)*10*(d+1);
+      const roiPct = pick([10,15,20,25,30,40,50]);
+      const gain = Math.round(cost*(1+roiPct/100));
+      const netGain = gain-cost;
+      return {
+        prompt:`An investment of <b>${fmtMoney(cost)}</b> returns <b>${fmtMoney(gain)}</b> after one year. What is the ROI (%)?`,
+        answer: roiPct, tol: 0.8,
+        explain:`ROI = (Gain − Cost) ÷ Cost × 100 = ${fmtMoney(netGain)} ÷ ${fmtMoney(cost)} × 100 = ${roiPct}%`
+      };
+    }
+    // margin
+    const cost = rand(10,60)+d*10;
+    const markupPct = pick([10,20,25,30,50,40]);
+    const price = round(cost*(1+markupPct/100),2);
+    const margin = round((price-cost)/price*100,1);
+    return {
+      prompt:`Cost is <b>$${cost}</b> and markup is <b>${markupPct}%</b> (price = cost × (1+markup)). What is the resulting profit <b>margin</b> (% of price)?`,
+      answer: margin, tol: 0.6,
+      explain:`Price = $${cost} × ${1+markupPct/100} = $${price}. Margin = (Price−Cost)/Price = ${margin}%`
+    };
+  }
+
+  /* ---------------- localStorage stats ---------------- */
+  function loadStats(mode){
+    try{ return JSON.parse(localStorage.getItem("casemath_"+mode) || "null"); }catch(e){ return null; }
+  }
+  function saveStats(mode, data){
+    try{ localStorage.setItem("casemath_"+mode, JSON.stringify(data)); }catch(e){}
+  }
+  function refreshStatLabels(){
+    ["sprint","guesstimate","casemath"].forEach(m=>{
+      const s = loadStats(m);
+      const el = document.getElementById("stat-"+m);
+      if (!s){ el.textContent = "No runs yet"; return; }
+      if (m==="sprint") el.textContent = `Best: ${s.best} pts · Best streak ${s.bestStreak}`;
+      else el.textContent = `Best score: ${s.best} · Best streak ${s.bestStreak}`;
+    });
+  }
+
+  /* ---------------- screens ---------------- */
+  const screens = {
+    home: document.getElementById("screen-home"),
+    game: document.getElementById("screen-game"),
+    results: document.getElementById("screen-results")
+  };
+  function show(name){
+    Object.values(screens).forEach(s=>s.classList.add("hidden"));
+    screens[name].classList.remove("hidden");
+  }
+
+  document.getElementById("diffRow").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".diff-btn");
+    if (!btn) return;
+    document.querySelectorAll(".diff-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.difficulty = btn.dataset.diff;
+  });
+
+  document.querySelectorAll(".mode-card").forEach(card=>{
+    card.addEventListener("click", ()=> startMode(card.dataset.mode));
+  });
+
+  function startMode(mode){
+    state.mode = mode;
+    state.index = 0;
+    state.score = 0;
+    state.correct = 0;
+    state.streak = 0;
+    state.bestStreak = 0;
+    state.missed = [];
+    state.questions = [];
+
+    if (mode === "sprint"){
+      state.total = 9999; // unlimited within time
+      document.getElementById("hudMode").textContent = "Mental Math Sprint";
+      document.getElementById("hudTimer").textContent = "60s";
+      state.timeLeft = 60;
+      nextSprintQuestion();
+      state.timerId = setInterval(tickTimer, 1000);
+    } else if (mode === "guesstimate"){
+      state.total = GUESSTIMATES.length;
+      const shuffled = GUESSTIMATES.slice().sort(()=>Math.random()-0.5);
+      state.questions = shuffled;
+      document.getElementById("hudMode").textContent = "Guesstimates";
+      document.getElementById("hudTimer").textContent = "—";
+      loadQuestionAt(0);
+    } else {
+      state.total = 10;
+      document.getElementById("hudMode").textContent = "Business Case Math";
+      document.getElementById("hudTimer").textContent = "—";
+      state.current = genCaseMathQuestion();
+      renderCaseOrGuess();
+    }
+    updateHud();
+    show("game");
+    document.getElementById("answerInput").value = "";
+    document.getElementById("answerInput").focus();
+  }
+
+  function tickTimer(){
+    state.timeLeft--;
+    document.getElementById("hudTimer").textContent = state.timeLeft + "s";
+    if (state.timeLeft <= 0){
+      clearInterval(state.timerId);
+      endRound();
+    }
+  }
+
+  function nextSprintQuestion(){
+    state.current = genSprintQuestion();
+    document.getElementById("qLabel").textContent = "Solve as fast as you can";
+    document.getElementById("qPrompt").innerHTML = state.current.prompt;
+    document.getElementById("progressFill").style.width = "0%";
+    document.getElementById("answerInput").value = "";
+    hideFeedback();
+  }
+
+  function loadQuestionAt(i){
+    const g = state.questions[i];
+    state.current = { prompt: g.q, answer: null, guess:true, low:g.low, high:g.high, unit:g.unit, logic:g.logic };
+    document.getElementById("qLabel").textContent = `Guesstimate ${i+1} of ${state.total}`;
+    document.getElementById("qPrompt").innerHTML = g.q + ` <span style="color:var(--text-dim);font-size:13px;">(${g.unit})</span>`;
+    document.getElementById("progressFill").style.width = (i/state.total*100)+"%";
+    document.getElementById("answerInput").value = "";
+    hideFeedback();
+  }
+
+  function renderCaseOrGuess(){
+    if (state.mode === "casemath"){
+      document.getElementById("qLabel").textContent = `Question ${state.index+1} of ${state.total}`;
+      document.getElementById("qPrompt").innerHTML = state.current.prompt;
+      document.getElementById("progressFill").style.width = (state.index/state.total*100)+"%";
+      document.getElementById("answerInput").value = "";
+      hideFeedback();
+    }
+  }
+
+  function hideFeedback(){
+    const fb = document.getElementById("feedback");
+    fb.classList.remove("show","good","bad");
+  }
+
+  function updateHud(){
+    document.getElementById("hudScore").textContent = state.score;
+    document.getElementById("hudStreak").textContent = state.streak;
+  }
+
+  function submitAnswer(){
+    const raw = document.getElementById("answerInput").value.trim();
+    if (raw === "") return;
+    const val = parseFloat(raw.replace(/[,%$]/g,""));
+    if (isNaN(val)) return;
+
+    const fb = document.getElementById("feedback");
+    const main = document.getElementById("feedbackMain");
+    const explain = document.getElementById("feedbackExplain");
+    let isCorrect;
+
+    if (state.current.guess){
+      isCorrect = val >= state.current.low && val <= state.current.high;
+      main.textContent = isCorrect
+        ? "✓ Within a reasonable range!"
+        : `✗ Off — a reasonable range is about ${fmt(state.current.low)}–${fmt(state.current.high)} ${state.current.unit}`;
+      explain.textContent = state.current.logic;
+    } else {
+      isCorrect = Math.abs(val - state.current.answer) <= state.current.tol;
+      main.textContent = isCorrect
+        ? "✓ Correct!"
+        : `✗ Correct answer: ${fmt(state.current.answer)}${state.current.suffix||""}`;
+      explain.textContent = state.current.explain || "";
+    }
+
+    fb.classList.add("show", isCorrect ? "good" : "bad");
+
+    if (isCorrect){
+      state.correct++;
+      state.streak++;
+      state.bestStreak = Math.max(state.bestStreak, state.streak);
+      state.score += state.mode==="sprint" ? (10 + Math.min(state.streak,10)) : 10;
+    } else {
+      state.streak = 0;
+      state.missed.push({
+        prompt: state.current.guess ? state.current.prompt : state.current.prompt.replace(/<[^>]+>/g,""),
+        correct: state.current.guess
+          ? `${fmt(state.current.low)}–${fmt(state.current.high)} ${state.current.unit}`
+          : `${fmt(state.current.answer)}${state.current.suffix||""}`
+      });
+    }
+    updateHud();
+
+    if (state.mode === "sprint"){
+      setTimeout(()=>{ if (state.timeLeft>0) nextSprintQuestion(); }, 550);
+    } else {
+      state.index++;
+      if (state.index >= state.total){
+        setTimeout(endRound, 900);
+      } else {
+        setTimeout(()=>{
+          if (state.mode === "guesstimate") loadQuestionAt(state.index);
+          else { state.current = genCaseMathQuestion(); renderCaseOrGuess(); }
+        }, 900);
+      }
+    }
+  }
+
+  document.getElementById("submitBtn").addEventListener("click", submitAnswer);
+  document.getElementById("answerInput").addEventListener("keydown", (e)=>{
+    if (e.key === "Enter") submitAnswer();
+  });
+  document.getElementById("quitBtn").addEventListener("click", endRound);
+
+  function endRound(){
+    if (state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+
+    const stats = loadStats(state.mode) || { best:0, bestStreak:0, runs:0 };
+    stats.best = Math.max(stats.best, state.score);
+    stats.bestStreak = Math.max(stats.bestStreak, state.bestStreak);
+    stats.runs = (stats.runs||0) + 1;
+    saveStats(state.mode, stats);
+    refreshStatLabels();
+
+    document.getElementById("resScore").textContent = state.score;
+    document.getElementById("resSub").textContent = state.mode === "sprint"
+      ? `points in 60 seconds`
+      : `points · ${state.correct}/${state.total} correct`;
+    document.getElementById("resCorrect").textContent = state.correct;
+    const attempted = state.correct + state.missed.length;
+    document.getElementById("resAccuracy").textContent = attempted ? Math.round(state.correct/attempted*100)+"%" : "—";
+    document.getElementById("resStreak").textContent = state.bestStreak;
+
+    const missedList = document.getElementById("missedList");
+    missedList.innerHTML = "";
+    if (state.missed.length === 0){
+      document.getElementById("missedWrap").classList.add("hidden");
+    } else {
+      document.getElementById("missedWrap").classList.remove("hidden");
+      state.missed.slice(0,8).forEach(m=>{
+        const div = document.createElement("div");
+        div.className = "missed-item";
+        div.innerHTML = `<div class="p">${m.prompt}</div><div class="a">Answer: <b>${m.correct}</b></div>`;
+        missedList.appendChild(div);
+      });
+    }
+    show("results");
+  }
+
+  document.getElementById("playAgainBtn").addEventListener("click", ()=> startMode(state.mode));
+  document.getElementById("homeBtn").addEventListener("click", ()=>{ refreshStatLabels(); show("home"); });
+
+  refreshStatLabels();
+  show("home");
+})();
+</script>
+</body>
+</html>
