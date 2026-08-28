@@ -95,9 +95,11 @@
   .q-prompt{font-size:19px;line-height:1.5;margin-bottom:20px;font-weight:500;}
   .q-prompt b{color:var(--accent);}
 
-  .answer-row{display:flex;gap:10px;}
+  .answer-row{display:flex;gap:8px;}
+  .answer-row button{flex-shrink:0;white-space:nowrap;}
+  #signBtn{flex:0 0 auto;padding:12px 14px;font-size:18px;font-weight:700;line-height:1;}
   input[type="text"], input[type="number"]{
-    flex:1;font-size:18px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--panel-border);
+    flex:1;min-width:0;font-size:18px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--panel-border);
     background:var(--input-bg);color:var(--text);outline:none;transition:border-color .15s;
   }
   input:focus{border-color:var(--accent);}
@@ -195,6 +197,7 @@
       <div class="q-prompt" id="qPrompt">Loading…</div>
 
       <div class="answer-row">
+        <button class="btn-ghost" id="signBtn" type="button">±</button>
         <input type="text" inputmode="decimal" id="answerInput" placeholder="Your answer" autocomplete="off">
         <button class="btn-primary" id="submitBtn">Submit</button>
       </div>
@@ -626,6 +629,11 @@
   }
 
   document.getElementById("submitBtn").addEventListener("click", submitAnswer);
+  document.getElementById("signBtn").addEventListener("click", ()=>{
+    const inp = document.getElementById("answerInput");
+    inp.value = inp.value.startsWith("-") ? inp.value.slice(1) : ("-" + inp.value);
+    inp.focus();
+  });
   document.getElementById("answerInput").addEventListener("keydown", (e)=>{
     if (e.key === "Enter") submitAnswer();
   });
