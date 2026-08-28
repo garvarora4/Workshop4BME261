@@ -62,7 +62,7 @@
   }
 
   /* ---------- Mode select screen ---------- */
-  .diff-row{display:flex;gap:8px;margin-bottom:22px;}
+  .diff-row{display:flex;gap:8px;margin-bottom:14px;}
   .diff-btn{
     flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--panel-border);
     background:var(--panel);color:var(--text-dim);font-size:13px;font-weight:600;
@@ -160,12 +160,19 @@
         <div class="diff-btn active" data-diff="medium">Medium</div>
         <div class="diff-btn" data-diff="hard">Hard</div>
       </div>
+      <div style="font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:10px;">grading (margin of error)</div>
+      <div class="diff-row" id="gradeRow" style="margin-bottom:8px;">
+        <div class="diff-btn" data-grade="strict">Strict</div>
+        <div class="diff-btn active" data-grade="standard">Standard</div>
+        <div class="diff-btn" data-grade="generous">Generous</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--text-dim);line-height:1.5;">Standard mirrors typical interview leniency — being close is a pass. Pure arithmetic drills (multiplication, division, sig-fig rounding) are always graded exact.</div>
     </div>
 
     <div class="mode-grid">
       <div class="mode-card" data-mode="sprint">
         <h3>⚡ Mental Math Sprint</h3>
-        <p>60-second timed drill: percentages, quick multiplication/division, fractions to %, and rounded-number arithmetic — the reflexes every case interview demands.</p>
+        <p>60-second timed drill: percentages, percentage-point differences, quick multiplication/division, fractions to %, significant-figure rounding, and rounded-number arithmetic.</p>
         <div class="stats" id="stat-sprint">No runs yet</div>
       </div>
       <div class="mode-card" data-mode="guesstimate">
@@ -175,7 +182,7 @@
       </div>
       <div class="mode-card" data-mode="casemath">
         <h3>📊 Business Case Math</h3>
-        <p>Profit &amp; margin, breakeven volume, CAGR (rule of 72), weighted averages, market share, ROI — the calculations that show up inside real cases.</p>
+        <p>Profit &amp; margin, breakeven, CAGR, payback period, contribution margin, compound growth, LTV:CAC, price elasticity, expected value, index rebasing, discounts, market share, ROI — the calculations that show up inside real cases.</p>
         <div class="stats" id="stat-casemath">No runs yet</div>
       </div>
     </div>
@@ -250,11 +257,12 @@
     return (Math.round(n*100)/100).toLocaleString();
   }
   function fmtMoney(n){
-    return "$" + fmt(n);
+    return n < 0 ? "-$" + fmt(-n) : "$" + fmt(n);
   }
 
   const state = {
     difficulty: "medium",
+    grading: "standard",
     mode: null,
     questions: [],
     index: 0,
@@ -268,15 +276,32 @@
     total: 10
   };
 
-  /* ---------------- difficulty scaling ---------------- */
+  /* ---------------- difficulty & grading scaling ---------------- */
   function diffScale(){
     return state.difficulty === "easy" ? 0 : state.difficulty === "hard" ? 2 : 1;
+  }
+  // Real case interviews grade "close enough," not exact-to-the-decimal.
+  // This widens/tightens the acceptance tolerance on estimation-type answers.
+  // Pure arithmetic drills (marked exact:true) always require the precise answer.
+  function gradingMultiplier(){
+    return state.grading === "strict" ? 0.55 : state.grading === "generous" ? 2.4 : 1;
+  }
+  function applyGrading(q){
+    if (!q.exact) q.tol = (q.tol || 0) * gradingMultiplier();
+    return q;
+  }
+  function guessRange(low, high){
+    const factor = state.grading === "strict" ? 0.7 : state.grading === "generous" ? 1.7 : 1;
+    if (factor === 1) return { low, high };
+    const logLow = Math.log(low), logHigh = Math.log(high);
+    const mid = (logLow+logHigh)/2, half = (logHigh-logLow)/2*factor;
+    return { low: Math.exp(mid-half), high: Math.exp(mid+half) };
   }
 
   /* ================= MENTAL MATH SPRINT ================= */
   function genSprintQuestion(){
     const d = diffScale();
-    const type = pick(["percentOf","percentChange","mult","div","fraction","addsub"]);
+    const type = pick(["percentOf","percentChange","pctPointDiff","mult","div","fraction","roundSigFig","addsub"]);
 
     if (type === "percentOf"){
       const pctsEasy=[10,20,25,50,5], pctsMed=[15,30,40,60,75,12], pctsHard=[8,18,35,45,17,22];
@@ -299,12 +324,24 @@
         answer: ans, tol: 0.6, suffix: "%"
       };
     }
+    if (type === "pctPointDiff"){
+      // Tests the classic interview mix-up: percentage points vs. percent change.
+      const setEasy=[10,20,30,40,50,60], setMed=[12,18,24,33,45,52,63], setHard=[7,13,19,27,38,46,58,71];
+      const set = d===0?setEasy:d===1?setMed:setHard;
+      let a = pick(set), b = pick(set);
+      while (b === a) b = pick(set);
+      const diff = round(b-a,1);
+      return {
+        prompt: `Operating margin moved from <b>${a}%</b> to <b>${b}%</b>. How many <b>percentage points</b> did it change?`,
+        answer: diff, tol: 0, suffix: " pp", exact: true
+      };
+    }
     if (type === "mult"){
       let a,b;
       if (d===0){ a=rand(11,19); b=rand(2,9); }
       else if (d===1){ a=rand(12,29); b=rand(11,19); }
       else { a=rand(23,89); b=rand(11,29); }
-      return { prompt: `${a} × ${b} = ?`, answer: a*b, tol: 0, suffix: "" };
+      return { prompt: `${a} × ${b} = ?`, answer: a*b, tol: 0, suffix: "", exact: true };
     }
     if (type === "div"){
       let divisor, ans, dividend;
@@ -312,7 +349,7 @@
       else if (d===1){ divisor=rand(4,12); ans=rand(8,40); }
       else { divisor=rand(6,24); ans=rand(12,80); }
       dividend = divisor*ans;
-      return { prompt: `${fmt(dividend)} ÷ ${divisor} = ?`, answer: ans, tol: 0, suffix: "" };
+      return { prompt: `${fmt(dividend)} ÷ ${divisor} = ?`, answer: ans, tol: 0, suffix: "", exact: true };
     }
     if (type === "fraction"){
       const fracsEasy=[[1,2],[1,4],[3,4],[1,5],[1,10]];
@@ -321,6 +358,18 @@
       const [n,dd] = pick(d===0?fracsEasy:d===1?fracsMed:fracsHard);
       const ans = round(n/dd*100,1);
       return { prompt: `Convert <b>${n}/${dd}</b> to a percentage.`, answer: ans, tol: 0.6, suffix: "%" };
+    }
+    if (type === "roundSigFig"){
+      const digits = d===0?4:d===1?6:8;
+      let numStr = String(rand(1,9));
+      for (let i=1;i<digits;i++) numStr += String(rand(0,9));
+      const num = parseInt(numStr,10);
+      const sig = d===0?1:2;
+      const ans = parseFloat(num.toPrecision(sig));
+      return {
+        prompt: `Round <b>${fmt(num)}</b> to ${sig} significant figure${sig>1?"s":""}.`,
+        answer: ans, tol: 0, suffix: "", exact: true
+      };
     }
     // addsub — rounded "millions" style quick math
     const scale = d===0? 1 : d===1? 10 : 100;
@@ -364,7 +413,8 @@
   /* ================= BUSINESS CASE MATH ================= */
   function genCaseMathQuestion(){
     const d = diffScale();
-    const type = pick(["profit","breakeven","cagr","weighted","share","roi","margin"]);
+    const type = pick(["profit","breakeven","cagr","weighted","share","roi","margin",
+      "payback","contribMargin","compoundGrowth","ltvCac","elasticity","expectedValue","indexRebase","discount"]);
     const scale = d===0?1:d===1?10:50;
 
     if (type === "profit"){
@@ -433,15 +483,106 @@
         explain:`ROI = (Gain − Cost) ÷ Cost × 100 = ${fmtMoney(netGain)} ÷ ${fmtMoney(cost)} × 100 = ${roiPct}%`
       };
     }
-    // margin
-    const cost = rand(10,60)+d*10;
-    const markupPct = pick([10,20,25,30,50,40]);
-    const price = round(cost*(1+markupPct/100),2);
-    const margin = round((price-cost)/price*100,1);
+    if (type === "margin"){
+      const cost = rand(10,60)+d*10;
+      const markupPct = pick([10,20,25,30,50,40]);
+      const price = round(cost*(1+markupPct/100),2);
+      const margin = round((price-cost)/price*100,1);
+      return {
+        prompt:`Cost is <b>$${cost}</b> and markup is <b>${markupPct}%</b> (price = cost × (1+markup)). What is the resulting profit <b>margin</b> (% of price)?`,
+        answer: margin, tol: 0.6,
+        explain:`Price = $${cost} × ${1+markupPct/100} = $${price}. Margin = (Price−Cost)/Price = ${margin}%`
+      };
+    }
+    if (type === "payback"){
+      const years = pick(d===0?[1,2,3,4]:d===1?[1,1.5,2,2.5,3,4,5]:[1,1.5,2,2.5,3,3.5,4,5,6]);
+      const annualFlow = rand(20,90)*10*(d+1);
+      const investment = round(annualFlow*years,0);
+      return {
+        prompt:`A project requires an upfront investment of <b>${fmtMoney(investment)}</b> and generates <b>${fmtMoney(annualFlow)}</b> in cash flow per year. What is the payback period (years)?`,
+        answer: years, tol: Math.max(0.15, years*0.05),
+        explain:`Payback period = Investment ÷ Annual cash flow = ${fmtMoney(investment)} ÷ ${fmtMoney(annualFlow)} = ${years} years`
+      };
+    }
+    if (type === "contribMargin"){
+      const price = rand(20,90)+d*10;
+      const varCost = rand(5,Math.max(6,price-10));
+      const cm = price-varCost;
+      const ratio = round(cm/price*100,1);
+      return {
+        prompt:`Price per unit is <b>$${price}</b> and variable cost per unit is <b>$${varCost}</b>. What is the contribution margin ratio (%)?`,
+        answer: ratio, tol: 0.6,
+        explain:`Contribution margin ratio = (Price − Variable cost) ÷ Price = ($${price} − $${varCost}) ÷ $${price} = ${ratio}%`
+      };
+    }
+    if (type === "compoundGrowth"){
+      const years = pick([2,3]);
+      const rate = pick(d===0?[10,20,25,50]:d===1?[10,15,20,25,30]:[8,12,18,22,35]);
+      const start = rand(4,20)*50*(d+1);
+      const end = round(start*Math.pow(1+rate/100, years),1);
+      return {
+        prompt:`A metric starts at <b>${fmtMoney(start)}</b> and grows <b>${rate}%</b> per year for <b>${years} years</b>. What is the ending value ($)?`,
+        answer: end, tol: Math.max(2, end*0.02),
+        explain:`${fmtMoney(start)} × (1+${rate}%)^${years} = ${fmtMoney(end)}`
+      };
+    }
+    if (type === "ltvCac"){
+      const cac = rand(20,200)*(d+1)*5;
+      const ltvMultiple = pick([1.5,2,2.5,3,3.5,4,5,6]);
+      const ltv = round(cac*ltvMultiple,0);
+      return {
+        prompt:`Customer acquisition cost (CAC) is <b>${fmtMoney(cac)}</b>. Customer lifetime value (LTV) is <b>${fmtMoney(ltv)}</b>. What is the LTV:CAC ratio?`,
+        answer: ltvMultiple, tol: Math.max(0.1, ltvMultiple*0.05),
+        explain:`LTV ÷ CAC = ${fmtMoney(ltv)} ÷ ${fmtMoney(cac)} = ${ltvMultiple}x`
+      };
+    }
+    if (type === "elasticity"){
+      const priceChange = pick([5,10,15,20]);
+      const el = pick(d===0?[1,2]:d===1?[1,1.5,2,2.5,3]:[0.5,1.5,2.5,3.5]);
+      const qtyChange = round(priceChange*el,1);
+      return {
+        prompt:`Price increases by <b>${priceChange}%</b> and quantity demanded falls by <b>${qtyChange}%</b>. What is the price elasticity of demand (as a positive number)?`,
+        answer: el, tol: Math.max(0.1, el*0.08),
+        explain:`Elasticity = %Δ Quantity ÷ %Δ Price = ${qtyChange}% ÷ ${priceChange}% = ${el}`
+      };
+    }
+    if (type === "expectedValue"){
+      const p1 = pick([50,60,70,80,90]), p2 = 100-p1;
+      const win = rand(5,40)*10*(d+1);
+      const lose = rand(2,20)*10*(d+1);
+      const ev = round(p1/100*win - p2/100*lose,1);
+      return {
+        prompt:`A project has a <b>${p1}%</b> chance of a <b>${fmtMoney(win)}</b> gain and a <b>${p2}%</b> chance of a <b>${fmtMoney(lose)}</b> loss. What is the expected value ($, use the ± button for a negative)?`,
+        answer: ev, tol: Math.max(2, Math.abs(ev)*0.03),
+        explain:`EV = (${p1}% × ${fmtMoney(win)}) − (${p2}% × ${fmtMoney(lose)}) = ${fmtMoney(ev)}`
+      };
+    }
+    if (type === "indexRebase"){
+      const gset = d===0?[10,20]:d===1?[10,15,20,25]:[8,12,18,22];
+      const g1 = pick(gset), g2 = pick(gset);
+      const idx2 = round(100*(1+g1/100),1);
+      const idx3 = round(idx2*(1+g2/100),1);
+      return {
+        prompt:`An index starts at <b>100</b>. It grows <b>${g1}%</b> in year 2, then <b>${g2}%</b> in year 3. What is the year-3 index value?`,
+        answer: idx3, tol: Math.max(0.5, idx3*0.02),
+        explain:`Year 2 index = 100 × (1+${g1}%) = ${idx2}. Year 3 index = ${idx2} × (1+${g2}%) = ${idx3}`
+      };
+    }
+    // discount / markdown
+    const original = rand(20,200)*(d+1)*2;
+    const discPct = pick([10,15,20,25,30,40]);
+    const sale = round(original*(1-discPct/100),2);
+    if (pick([true,false])){
+      return {
+        prompt:`An item originally priced at <b>$${original}</b> is marked down <b>${discPct}%</b>. What is the sale price ($)?`,
+        answer: sale, tol: Math.max(0.5, sale*0.02),
+        explain:`Sale price = $${original} × (1−${discPct}%) = ${fmtMoney(sale)}`
+      };
+    }
     return {
-      prompt:`Cost is <b>$${cost}</b> and markup is <b>${markupPct}%</b> (price = cost × (1+markup)). What is the resulting profit <b>margin</b> (% of price)?`,
-      answer: margin, tol: 0.6,
-      explain:`Price = $${cost} × ${1+markupPct/100} = $${price}. Margin = (Price−Cost)/Price = ${margin}%`
+      prompt:`An item originally priced at <b>$${original}</b> is now selling for <b>${fmtMoney(sale)}</b>. What percent discount is that?`,
+      answer: discPct, tol: Math.max(0.4, discPct*0.03),
+      explain:`Discount % = (Original − Sale) ÷ Original × 100 = ($${original} − ${fmtMoney(sale)}) ÷ $${original} × 100 = ${discPct}%`
     };
   }
 
@@ -476,9 +617,16 @@
   document.getElementById("diffRow").addEventListener("click", (e)=>{
     const btn = e.target.closest(".diff-btn");
     if (!btn) return;
-    document.querySelectorAll(".diff-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll("#diffRow .diff-btn").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     state.difficulty = btn.dataset.diff;
+  });
+  document.getElementById("gradeRow").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".diff-btn");
+    if (!btn) return;
+    document.querySelectorAll("#gradeRow .diff-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    state.grading = btn.dataset.grade;
   });
 
   document.querySelectorAll(".mode-card").forEach(card=>{
@@ -513,7 +661,7 @@
       state.total = 10;
       document.getElementById("hudMode").textContent = "Business Case Math";
       document.getElementById("hudTimer").textContent = "—";
-      state.current = genCaseMathQuestion();
+      state.current = applyGrading(genCaseMathQuestion());
       renderCaseOrGuess();
     }
     updateHud();
@@ -532,7 +680,7 @@
   }
 
   function nextSprintQuestion(){
-    state.current = genSprintQuestion();
+    state.current = applyGrading(genSprintQuestion());
     document.getElementById("qLabel").textContent = "Solve as fast as you can";
     document.getElementById("qPrompt").innerHTML = state.current.prompt;
     document.getElementById("progressFill").style.width = "0%";
@@ -542,7 +690,8 @@
 
   function loadQuestionAt(i){
     const g = state.questions[i];
-    state.current = { prompt: g.q, answer: null, guess:true, low:g.low, high:g.high, unit:g.unit, logic:g.logic };
+    const range = guessRange(g.low, g.high);
+    state.current = { prompt: g.q, answer: null, guess:true, low:range.low, high:range.high, unit:g.unit, logic:g.logic };
     document.getElementById("qLabel").textContent = `Guesstimate ${i+1} of ${state.total}`;
     document.getElementById("qPrompt").innerHTML = g.q + ` <span style="color:var(--text-dim);font-size:13px;">(${g.unit})</span>`;
     document.getElementById("progressFill").style.width = (i/state.total*100)+"%";
@@ -585,14 +734,22 @@
       isCorrect = val >= state.current.low && val <= state.current.high;
       main.textContent = isCorrect
         ? "✓ Within a reasonable range!"
-        : `✗ Off — a reasonable range is about ${fmt(state.current.low)}–${fmt(state.current.high)} ${state.current.unit}`;
+        : `✗ Off — a reasonable range (${state.grading} grading) is about ${fmt(state.current.low)}–${fmt(state.current.high)} ${state.current.unit}`;
       explain.textContent = state.current.logic;
     } else {
       isCorrect = Math.abs(val - state.current.answer) <= state.current.tol;
-      main.textContent = isCorrect
-        ? "✓ Correct!"
-        : `✗ Correct answer: ${fmt(state.current.answer)}${state.current.suffix||""}`;
-      explain.textContent = state.current.explain || "";
+      const suf = state.current.suffix || "";
+      if (isCorrect){
+        main.textContent = state.current.exact ? "✓ Correct!" : `✓ Correct! (accepted within ±${fmt(state.current.tol)}${suf})`;
+        explain.textContent = state.current.explain || "";
+      } else {
+        const pctOff = state.current.answer !== 0
+          ? Math.abs((val - state.current.answer) / state.current.answer * 100)
+          : Math.abs(val - state.current.answer);
+        const offNote = state.current.exact ? "" : ` — you were ${round(pctOff,1)}% off (accepted within ±${fmt(state.current.tol)}${suf})`;
+        main.textContent = `✗ Correct answer: ${fmt(state.current.answer)}${suf}${offNote}`;
+        explain.textContent = state.current.explain || "";
+      }
     }
 
     fb.classList.add("show", isCorrect ? "good" : "bad");
@@ -622,7 +779,7 @@
       } else {
         setTimeout(()=>{
           if (state.mode === "guesstimate") loadQuestionAt(state.index);
-          else { state.current = genCaseMathQuestion(); renderCaseOrGuess(); }
+          else { state.current = applyGrading(genCaseMathQuestion()); renderCaseOrGuess(); }
         }, 900);
       }
     }
